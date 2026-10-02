@@ -1,0 +1,49 @@
+name: testes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  testes:
+    runs-on: ${{ matrix.so }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        so: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # O que se quer testar aqui e o proprio teorema do fluxo maximo e corte
+      # minimo, entao o juiz NAO pode ser outro algoritmo de fluxo: os dois
+      # poderiam errar junto. Ele enumera os 2^(n-2) cortes e devolve o menor,
+      # usando so a definicao de capacidade de corte.
+      #
+      # Sao 3.000 redes de 8 vertices, 64 cortes cada, contra quatro algoritmos,
+      # mais o corte que cada um devolve, que precisa separar de verdade e fechar
+      # com o valor. E tres invariantes conferidas depois de CADA execucao, porque
+      # um empurrao mal feito pode dar o valor certo e deixar o fluxo invalido.
+      #
+      # Os teoremas que caem do mesmo lugar tem juiz proprio, todos por forca
+      # bruta: Menger contra a enumeracao de subconjuntos de arestas, Konig e Hall
+      # contra subconjuntos de vertices, e a selecao de projetos contra os 2^8
+      # subconjuntos de projetos.
+      - name: testes
+        run: dotnet test testes/Fluxo.Testes/Fluxo.Testes.csproj -c Release --nologo -v q
+
+      # As medidas rodam para REGISTRAR numeros. Nao ha asseveracao de tempo.
+      - name: o trabalho depende da capacidade?
+        run: dotnet run --project ferramentas/Medidor/Medidor.csproj -c Release --nologo -- capacidade
+
+      - name: as 120 ordens de insercao da rede adversaria
+        run: dotnet run --project ferramentas/Medidor/Medidor.csproj -c Release --nologo -- ordens
+
+      - name: arestas visitadas na grade
+        run: dotnet run --project ferramentas/Medidor/Medidor.csproj -c Release --nologo -- grade
